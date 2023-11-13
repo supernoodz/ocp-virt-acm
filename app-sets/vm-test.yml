@@ -1,0 +1,44 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: vnf-argo
+  namespace: openshift-gitops
+spec:
+  generators:
+  - clusterDecisionResource:
+      configMapRef: acm-placement
+      labelSelector:
+        matchLabels:
+          cluster.open-cluster-management.io/placement: vnf-argo-placement
+      requeueAfterSeconds: 180
+  template:
+    metadata:
+      labels:
+        velero.io/exclude-from-backup: "true"
+      name: vnf-argo-{{name}}
+    spec:
+      destination:
+        namespace: vnf-argo
+        server: '{{server}}'
+      project: default
+      source:
+        path: vms
+        repoURL: https://github.com/supernoodz/ocp-virt-acm
+        targetRevision: main
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
+        - PruneLast=true
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: vnf-argo-placement
+  namespace: openshift-gitops
+spec:
+  clusterSets:
+  - default
